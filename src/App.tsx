@@ -1,5 +1,4 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
 import "./App.css";
 import useFfmpeg from "./useFfmpeg";
 import { fetchFile } from "@ffmpeg/ffmpeg";
@@ -19,15 +18,21 @@ function VideoPlayer(props: VideoPlayerProps) {
 function App() {
   const { ffmpeg, isLoaded } = useFfmpeg();
 
-  const [videoSrc, setVideoSrc] = useState<string>();
+  const [inputVideoSrc, setInputVideoSrc] = useState<string>();
+  const [outputVideoSrc, setOutputVideoSrc] = useState<string>();
 
   const transcode = async ({ target: { files } }) => {
     if (isLoaded) {
       const { name } = files[0];
-      ffmpeg.FS("writeFile", name, await fetchFile(files[0]));
+      const inputData = await fetchFile(files[0]);
+      setInputVideoSrc(
+        URL.createObjectURL(new Blob([inputData.buffer], { type: "video/mp4" }))
+      );
+      ffmpeg.FS("writeFile", name, inputData);
+      await ffmpeg.run("-i", name, "output.y4m"); // convert to y4m
       await ffmpeg.run("-i", name, "output.mp4");
       const data = ffmpeg.FS("readFile", "output.mp4");
-      setVideoSrc(
+      setOutputVideoSrc(
         URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }))
       );
     }
@@ -37,7 +42,8 @@ function App() {
     <div className="App py-3">
       <h1 className="py-3 text-6xl font-extralight">Quantise</h1>
       <input className="py-3" type="file" id="uploader" onChange={transcode} />
-      <VideoPlayer src={videoSrc} />
+      <VideoPlayer src={inputVideoSrc} />
+      <VideoPlayer src={outputVideoSrc} />
     </div>
   );
 }
