@@ -21,8 +21,9 @@ function App() {
   const [inputVideoSrc, setInputVideoSrc] = useState<string>();
   const [outputVideoSrc, setOutputVideoSrc] = useState<string>();
 
-  const transcode = async ({ target: { files } }) => {
-    if (isLoaded) {
+  const transcode = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const {target: { files }} = event;
+    if (isLoaded && files) {
       const { name } = files[0];
       const inputData = await fetchFile(files[0]);
       setInputVideoSrc(
