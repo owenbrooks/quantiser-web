@@ -28,7 +28,7 @@ macro_rules! console_log {
 
 #[wasm_bindgen]
 pub fn greet() {
-    console_log!("Hello, 123456789asdfhkjhlkjha");
+    console_log!("Hello, ");
     // console::log_1(&"Hello, 123456789asdfhkjhlkjha!".into());
 }
 

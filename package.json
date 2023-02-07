@@ -6,6 +6,7 @@
   "scripts": {
     "wasm": "wasm-pack build ./wasm --target web",
     "dev": "npm run wasm && vite",
+    "dev2": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
@@ -25,8 +26,7 @@
     "typescript": "^4.9.3",
     "vite": "^4.1.1",
     "vite-plugin-cross-origin-isolation": "^0.1.6",
-    "vite-plugin-top-level-await": "^1.2.3",
-    "vite-plugin-wasm": "^3.1.1",
+    "vite-plugin-restart": "^0.3.1",
     "vite-plugin-wasm-pack": "^0.1.12"
   }
 }

@@ -47,24 +47,23 @@ function App() {
     // const result = add(1, 2);
     // alert(result);
 
-    // const {target: { files }} = event;
-    // if (isLoaded && files) {
-    //   const { name } = files[0];
-    //   const inputData = await fetchFile(files[0]);
-    //   setInputVideoSrc(
-    //     URL.createObjectURL(new Blob([inputData.buffer], { type: "video/mp4" }))
-    //   );
-    //   ffmpeg.FS("writeFile", name, inputData);
-    //   await ffmpeg.run("-i", name, "output.y4m"); // convert to y4m
-    //   const rawData = ffmpeg.FS("readFile", "output.y4m");
-    //   console.log(rawData);
-    //   console.log("Hello");
-    //   await ffmpeg.run("-i", "output.y4m", "output.mp4");
-    //   const data = ffmpeg.FS("readFile", "output.mp4");
-    //   setOutputVideoSrc(
-    //     URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }))
-    //   );
-    // }
+    const {target: { files }} = event;
+    if (isLoaded && files) {
+      const { name } = files[0];
+      const inputData = await fetchFile(files[0]);
+      setInputVideoSrc(
+        URL.createObjectURL(new Blob([inputData.buffer], { type: "video/mp4" }))
+      );
+      ffmpeg.FS("writeFile", name, inputData);
+      await ffmpeg.run("-i", name, "output.y4m"); // convert to y4m
+      const rawData = ffmpeg.FS("readFile", "output.y4m");
+      take_number_slice_by_exclusive_ref(rawData);
+      await ffmpeg.run("-i", "output.y4m", "output.mp4");
+      const data = ffmpeg.FS("readFile", "output.mp4");
+      setOutputVideoSrc(
+        URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }))
+      );
+    }
   };
 
   return (
