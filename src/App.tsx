@@ -5,7 +5,6 @@ import { fetchFile } from "@ffmpeg/ffmpeg";
 import init, {
   greet,
   take_number_slice_by_shared_ref,
-  take_number_slice_by_exclusive_ref,
 } from '../wasm/pkg';
 
 function useWasm() {
@@ -35,17 +34,6 @@ function App() {
 
   const transcode = async (event: React.ChangeEvent<HTMLInputElement>) => {
     await init();
-    greet();
-
-    const my_array = new Uint8Array(100);
-    // take_number_slice_by_shared_ref(new Uint8Array(100));
-    const result = take_number_slice_by_exclusive_ref(my_array);
-    console.log(my_array);
-    console.log(result);
-
-
-    // const result = add(1, 2);
-    // alert(result);
 
     const {target: { files }} = event;
     if (isLoaded && files) {
@@ -55,9 +43,13 @@ function App() {
         URL.createObjectURL(new Blob([inputData.buffer], { type: "video/mp4" }))
       );
       ffmpeg.FS("writeFile", name, inputData);
-      await ffmpeg.run("-i", name, "output.y4m"); // convert to y4m
-      const rawData = ffmpeg.FS("readFile", "output.y4m");
-      take_number_slice_by_exclusive_ref(rawData);
+      await ffmpeg.run("-i", name, "input.y4m"); // convert to y4m
+      const rawData = ffmpeg.FS("readFile", "input.y4m");
+      console.log("before processing")
+      const quantisedData = take_number_slice_by_shared_ref(rawData, 50.0);
+      console.log("after processing");
+      console.log(quantisedData)
+      ffmpeg.FS("writeFile", "output.y4m", quantisedData);
       await ffmpeg.run("-i", "output.y4m", "output.mp4");
       const data = ffmpeg.FS("readFile", "output.mp4");
       setOutputVideoSrc(
