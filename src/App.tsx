@@ -43,6 +43,7 @@ const quantise = async (
     // convert to y4m for processing
     // setProcessingState("Decompressing");
     setProcessingState("Quantising"); // since thread will be blocked during actual quantisation step
+    
     ffmpeg.FS("writeFile", inputVideo.name, inputVideo.data);
     await ffmpeg.run("-i", inputVideo.name, "input.y4m");
     const rawData = ffmpeg.FS("readFile", "input.y4m");
@@ -82,10 +83,7 @@ function App() {
   const [quantiseErrorMessage, setQuantiseErrorMessage] = useState<string>();
 
   useEffect(() => {
-    console.log("effect");
     if (inputVideo) {
-      console.log("input");
-
       quantise(
         inputVideo,
         quantisationFactor,
@@ -95,9 +93,11 @@ function App() {
       )
         .catch((e) => {
           setProcessingState("Inactive");
+          alert(e)
           setQuantiseErrorMessage(e as string);
         })
         .then((quantisedVideoData) => {
+          setQuantiseErrorMessage("");
           if (quantisedVideoData) {
             setOutputVideoSrc(
               URL.createObjectURL(
@@ -114,13 +114,11 @@ function App() {
     const {
       target: { files },
     } = event;
-    console.log("handleupload", isLoaded);
     if (isLoaded() && files) {
       const { name } = files[0];
       setProcessingState("Uploading");
       const inputData = await fetchFile(files[0]);
       setInputVideo({ data: inputData, name });
-      console.log("set input vide");
     }
   };
 
@@ -131,7 +129,7 @@ function App() {
           <h1 className="text-3xl font-bold">Quantiser</h1>
           <div className="w-auto" id="navbar-default">
             <a
-              href="https://github.com/owenbrooks"
+              href="https://github.com/owenbrooks/quantiser-web"
               className="flex items-center"
             >
               <img src={GithubLogo} className="mr-3 h-9" alt="Github Logo" />
