@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
 import useFfmpeg from "./useFfmpeg";
-import { fetchFile } from "@ffmpeg/ffmpeg";
+import { fetchFile, FFmpeg } from "@ffmpeg/ffmpeg";
 import init, { quantise_video } from "../wasm/pkg";
 import Spinner from "./Spinner";
-
-function useWasm() {
-  useEffect(() => {
-    // await init();
-  }, []);
-}
+import GithubLogo from "./assets/github-mark-white.svg";
 
 type VideoPlayerProps = {
   src: string | undefined;
@@ -16,147 +11,248 @@ type VideoPlayerProps = {
 
 type QuantisationMethod = "intra" | "inter";
 
-type ProcessingState = "Inactive" | "Uploading" | "Decompressing" | "Quantising" | "Converting";
+type ProcessingState =
+  | "Inactive"
+  | "Uploading"
+  | "Decompressing"
+  | "Quantising"
+  | "Converting";
 
 function VideoPlayer(props: VideoPlayerProps) {
   if (!props.src) {
     return null;
   }
 
-  return <video className="py-3 max-w-lg" src={props.src} controls />;
+  return <video className="w-full py-3" src={props.src} controls loop />;
 }
 
-function App() {
-  const { ffmpeg, isLoaded } = useFfmpeg();
-  useWasm();
+type Video = {
+  data: Uint8Array;
+  name: string;
+};
 
-  const [inputVideoSrc, setInputVideoSrc] = useState<string>();
+const quantise = async (
+  inputVideo: Video,
+  quantisationFactor: number,
+  quantisationMethod: QuantisationMethod,
+  ffmpeg: FFmpeg,
+  setProcessingState: React.Dispatch<React.SetStateAction<ProcessingState>>
+) => {
+  if (inputVideo) {
+    await init();
+    // convert to y4m for processing
+    // setProcessingState("Decompressing");
+    setProcessingState("Quantising"); // since thread will be blocked during actual quantisation step
+    ffmpeg.FS("writeFile", inputVideo.name, inputVideo.data);
+    await ffmpeg.run("-i", inputVideo.name, "input.y4m");
+    const rawData = ffmpeg.FS("readFile", "input.y4m");
+
+    // process via wasm function
+    setProcessingState("Quantising");
+    const quantisedData = quantise_video(
+      rawData,
+      quantisationFactor,
+      quantisationMethod == "inter"
+    );
+
+    // convert to mp4 for display
+    setProcessingState("Converting");
+    ffmpeg.FS("writeFile", "output.y4m", quantisedData);
+    await ffmpeg.run("-i", "output.y4m", "output.mp4");
+    const data = ffmpeg.FS("readFile", "output.mp4");
+
+    return data;
+  }
+};
+
+function App() {
+  const { ffmpeg, isLoaded, errorMsg: ffmpegErrorMsg } = useFfmpeg();
+
   const [outputVideoSrc, setOutputVideoSrc] = useState<string>();
+  const [inputVideo, setInputVideo] = useState<Video>();
   const [quantisationMethod, setQuantisationMethod] =
     useState<QuantisationMethod>("inter");
-  const [quantisationFactor, setQuantisationFactor] = useState(40.0);
+  const defaultQuantFactor = 40.0;
+  const [quantisationFactor, setQuantisationFactor] =
+    useState(defaultQuantFactor);
+  const [temporaryQuantisationFactor, setTempQuantisationFactor] =
+    useState(defaultQuantFactor);
+  const [processingState, setProcessingState] =
+    useState<ProcessingState>("Inactive");
+  const [quantiseErrorMessage, setQuantiseErrorMessage] = useState<string>();
 
-  const [processingState, setProcessingState] = useState<ProcessingState>("Inactive");
+  useEffect(() => {
+    console.log("effect");
+    if (inputVideo) {
+      console.log("input");
 
-  const transcode = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    await init();
+      quantise(
+        inputVideo,
+        quantisationFactor,
+        quantisationMethod,
+        ffmpeg,
+        setProcessingState
+      )
+        .catch((e) => {
+          setProcessingState("Inactive");
+          setQuantiseErrorMessage(e as string);
+        })
+        .then((quantisedVideoData) => {
+          if (quantisedVideoData) {
+            setOutputVideoSrc(
+              URL.createObjectURL(
+                new Blob([quantisedVideoData.buffer], { type: "video/mp4" })
+              )
+            );
+          }
+          setProcessingState("Inactive");
+        });
+    }
+  }, [inputVideo, quantisationMethod, quantisationFactor]);
 
+  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const {
       target: { files },
     } = event;
-    if (isLoaded && files) {
+    console.log("handleupload", isLoaded);
+    if (isLoaded() && files) {
       const { name } = files[0];
       setProcessingState("Uploading");
       const inputData = await fetchFile(files[0]);
-      setInputVideoSrc(
-        URL.createObjectURL(new Blob([inputData.buffer], { type: "video/mp4" }))
-      );
-
-      try {
-        const my_array = new Uint8Array(100);
-        quantise_video(my_array, 100, true);
-      } catch (e) {
-        console.error(e);
-      }
-
-      // convert to y4m for processing
-      setProcessingState("Decompressing");
-      ffmpeg.FS("writeFile", name, inputData);
-      await ffmpeg.run("-i", name, "input.y4m");
-      const rawData = ffmpeg.FS("readFile", "input.y4m");
-
-      // process via wasm function
-      setProcessingState("Quantising");
-      try {
-        const quantisedData = quantise_video(rawData, 50.0, quantisationMethod=="inter");
-
-        // convert to mp4 for display
-        setProcessingState("Converting");
-        ffmpeg.FS("writeFile", "output.y4m", quantisedData);
-        await ffmpeg.run("-i", "output.y4m", "output.mp4");
-        const data = ffmpeg.FS("readFile", "output.mp4");
-
-        setOutputVideoSrc(
-          URL.createObjectURL(new Blob([data.buffer], { type: "video/mp4" }))
-        );
-        setProcessingState("Inactive");
-      } catch (e) {
-        setProcessingState("Inactive");
-        console.error(e);
-      }
+      setInputVideo({ data: inputData, name });
+      console.log("set input vide");
     }
   };
 
   return (
-    <div className="px-2">
-      <div>
-        <h1 className="py-3 text-3xl font-bold">Quantise</h1>
-      </div>
-      <div className="mb-2">
-          <label
-            className="text-xl block font-bold mb-1 pr-4"
-            htmlFor="method"
-          >
-            Method
-          </label>
-        <label className="mx-1 block font-bold">
-          <input
-            className="mr-2 leading-tight"
-            type="radio"
-            name="method"
-            value="intra"
-            checked={quantisationMethod == "intra"}
-            onChange={(e) => setQuantisationMethod(e.target.value as QuantisationMethod)}
-          />
-          <span className="text-lg">Intra-frame</span>
-        </label>
-        <label className="mx-1 block font-bold">
-          <input
-            className="mr-2 leading-tight"
-            type="radio"
-            name="method"
-            value="inter"
-            checked={quantisationMethod == "inter"}
-            onChange={(e) => setQuantisationMethod(e.target.value as QuantisationMethod)}
-          />
-          <span className="text-lg">Inter-frame</span>
-        </label>
-      </div>
-      <div className="mb-2">
-        <label
-          className="text-xl align-middle inline-block font-bold mb-1 pr-4"
-          htmlFor="inline-full-name"
-        >
-          Quantisation Factor
-        </label>
-        <input
-          className="align-middle inline-block"
-          id="quantisation-factor"
-          type="range"
-          min="1.0"
-          max="100.0"
-          value={quantisationFactor}
-          onChange={(e) => setQuantisationFactor(parseFloat(e.target.value))}
-        />
-        <span className="mx-2">{quantisationFactor}</span>
-      </div>
-
-      {processingState !== "Inactive" &&
-        <div className="text-center text-xl py-3">
-          <Spinner />
-          {processingState}
+    <div className="overflow-x-hidden bg-orange-600">
+      <nav className="rounded bg-orange-600 px-2 py-2.5 sm:px-4">
+        <div className="container mx-auto flex flex-wrap items-center justify-between text-white">
+          <h1 className="text-3xl font-bold">Quantiser</h1>
+          <div className="w-auto" id="navbar-default">
+            <a
+              href="https://github.com/owenbrooks"
+              className="flex items-center"
+            >
+              <img src={GithubLogo} className="mr-3 h-9" alt="Github Logo" />
+              {/* <span className="hidden md:block whitespace-nowrape self-center text-xl font-semibold">
+                Github
+              </span> */}
+            </a>
+          </div>
         </div>
-      }
+      </nav>
+      <div className="bg-white">
+        <div className="mx-auto max-w-xl py-4 px-2">
+          {ffmpegErrorMsg && <ErrorMessage message={ffmpegErrorMsg} />}
+          <div className="mb-2">
+            <label
+              className="mb-1 block pr-4 text-xl font-bold"
+              htmlFor="method"
+            >
+              Method
+            </label>
+            <label className="mx-1 block font-bold">
+              <input
+                className="mr-2 leading-tight"
+                type="radio"
+                name="method"
+                value="intra"
+                checked={quantisationMethod == "intra"}
+                onChange={(e) =>
+                  setQuantisationMethod(e.target.value as QuantisationMethod)
+                }
+              />
+              <span className="text-lg">Intra-frame DCT</span>
+            </label>
+            <label className="mx-1 block font-bold">
+              <input
+                className="mr-2 leading-tight"
+                type="radio"
+                name="method"
+                value="inter"
+                checked={quantisationMethod == "inter"}
+                onChange={(e) =>
+                  setQuantisationMethod(e.target.value as QuantisationMethod)
+                }
+              />
+              <span className="text-lg">Intra-frame DCT</span>
+            </label>
+          </div>
+          <div className="mb-2">
+            <label
+              className="mb-1 inline-block pr-4 align-middle text-xl font-bold"
+              htmlFor="inline-full-name"
+            >
+              Quantisation Factor
+            </label>
+            <div>
+              <input
+                className="inline-block align-middle"
+                id="quantisation-factor"
+                type="range"
+                min="1.0"
+                max="100.0"
+                value={temporaryQuantisationFactor}
+                onMouseUp={() => {
+                  // Synchronise temporary and stored value
+                  // This is separated from onchange because onchange fires very often when sliding.
+                  setQuantisationFactor(temporaryQuantisationFactor);
+                }}
+                onChange={(e) =>
+                  setTempQuantisationFactor(parseFloat(e.target.value))
+                }
+              />
+              <span className="mx-2">{temporaryQuantisationFactor}</span>
+            </div>
+          </div>
 
-      <input className="py-3" type="file" id="uploader" onChange={transcode} />
-      <button
-        className="shadow bg-orange-600 hover:bg-orange-400 focus:shadow-outline focus:outline-none text-white font-bold py-2 px-4 rounded"
-        type="button"
-      >
-        Select video
-      </button>
-      <VideoPlayer src={inputVideoSrc} />
-      <VideoPlayer src={outputVideoSrc} />
+          {processingState !== "Inactive" && (
+            <div className="py-3 text-center text-xl">
+              <Spinner />
+              {processingState}
+            </div>
+          )}
+
+          {quantiseErrorMessage && (
+            <ErrorMessage message={quantiseErrorMessage} />
+          )}
+          {!quantiseErrorMessage &&
+            outputVideoSrc &&
+            processingState === "Inactive" && (
+              <VideoPlayer src={outputVideoSrc} />
+            )}
+
+          <input
+            className="hidden"
+            type="file"
+            name="file"
+            id="uploader"
+            onChange={handleUpload}
+          />
+          <label
+            htmlFor="uploader"
+            className="my-2 block max-w-[11rem] cursor-pointer rounded border-2 border-solid border-orange-600 bg-orange-600 py-2 px-4 text-lg font-bold text-white hover:border-orange-500 hover:bg-orange-500"
+          >
+            Select video...
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ErrorMessage({ message }: { message: string | unknown }) {
+  let errorMsg;
+  if (typeof message === "string") {
+    errorMsg = message;
+  } else {
+    errorMsg = "An error occurred. Try reloading.";
+  }
+
+  return (
+    <div className="border border-red-700 bg-red-400 p-2 text-red-900">
+      {errorMsg}
     </div>
   );
 }
