@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import useFfmpeg from "./useFfmpeg";
 import { fetchFile, FFmpeg } from "@ffmpeg/ffmpeg";
-import init, { quantise_video } from "../squish_wasm/pkg/squish_wasm";
+import init, { quantise_video } from "squish_wasm";
 import Spinner from "./Spinner";
 import GithubLogo from "./assets/github-mark-white.svg";
 

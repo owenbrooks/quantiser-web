@@ -6,8 +6,8 @@ A web application to demonstrate the effects of performing [DCT quantisation](ht
 Video processing is done in a rust library compiled to web assembly: https://github.com/owenbrooks/squish. Conversion of videos between formats is handled by [ffmpeg.wasm](https://github.com/ffmpegwasm/ffmpeg.wasm).
 
 ## Requirements
-- [node.js](https://nodejs.org/en/)
-- [rust](https://www.rust-lang.org/)
+- [node.js](https://nodejs.org/en/) (Developed using v19.4.0)
+- [rust](https://www.rust-lang.org/) (Developed using 1.65.0)
 
 ## Installation
 ```
