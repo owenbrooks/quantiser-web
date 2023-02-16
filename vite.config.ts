@@ -10,7 +10,7 @@ export default defineConfig({
   plugins: [
     react(), 
     crossOriginIsolation(),
-    wasmPack('./wasm'),
+    wasmPack('./squish_wasm'),
     ViteRestart({
       restart: [
         'wasm/pkg/*',

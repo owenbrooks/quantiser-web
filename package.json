@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "wasm": "wasm-pack build ./wasm --target web",
+    "wasm": "wasm-pack build ./squish_wasm --target web",
     "dev": "npm run wasm && vite",
     "only-vite": "vite",
     "build": "tsc && vite build",
