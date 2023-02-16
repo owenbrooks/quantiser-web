@@ -125,14 +125,14 @@ function App() {
   return (
     <div className="overflow-x-hidden bg-orange-600">
       <nav className="rounded bg-orange-600 px-2 py-2.5 sm:px-4">
-        <div className="container mx-auto flex flex-wrap items-center justify-between text-white">
+        <div className="container mx-auto flex flex-wrap items-center justify-between text-white px-2">
           <h1 className="text-3xl font-bold">Quantiser</h1>
           <div className="w-auto" id="navbar-default">
             <a
               href="https://github.com/owenbrooks/quantiser-web"
               className="flex items-center"
             >
-              <img src={GithubLogo} className="mr-3 h-9" alt="Github Logo" />
+              <img src={GithubLogo} className="h-9" alt="Github Logo" />
               {/* <span className="hidden md:block whitespace-nowrape self-center text-xl font-semibold">
                 Github
               </span> */}
