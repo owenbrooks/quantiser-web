@@ -1,0 +1,4 @@
+# These headers are required for wasm SharedArrayBuffer needed by ffmpeg
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp

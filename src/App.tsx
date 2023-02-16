@@ -142,7 +142,7 @@ function App() {
           </div>
         </div>
       </nav>
-      <div className="bg-white">
+      <div className="main-container">
         <div className="mx-auto max-w-xl py-4 px-2">
           {ffmpegErrorMsg && <ErrorMessage message={ffmpegErrorMsg} />}
           <div className="mb-2">

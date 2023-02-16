@@ -14,10 +14,16 @@
   -webkit-text-size-adjust: 100%;
 }
 
+.main-container {
+  background-color: #242424;
+}
 
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
+    background-color: #ffffff;
+  }
+  .main-container {
     background-color: #ffffff;
   }
   a:hover {
