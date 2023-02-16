@@ -176,7 +176,7 @@ function App() {
                   setQuantisationMethod(e.target.value as QuantisationMethod)
                 }
               />
-              <span className="text-lg">Intra-frame DCT</span>
+              <span className="text-lg">Inter-frame DCT</span>
             </label>
           </div>
           <div className="mb-2">
