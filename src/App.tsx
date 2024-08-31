@@ -141,7 +141,7 @@ function App() {
         </div>
       </nav>
       <div className="main-container">
-        <div className="mx-auto max-w-xl py-4 px-2">
+        <div className="min-h-view mx-auto max-w-xl py-4 px-2">
           {ffmpegErrorMsg && <ErrorMessage message={ffmpegErrorMsg} />}
           <div className="mb-2">
             <label
